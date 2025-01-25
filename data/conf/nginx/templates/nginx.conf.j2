@@ -43,7 +43,7 @@ http {
 
     # Default
     server {
-        listen 127.0.0.1:65510; # sogo-auth verify internal
+        listen 127.0.0.1:65510; # auth request verify internal
         listen {{ HTTP_PORT }}{% if NGINX_USE_PROXY_PROTOCOL %} proxy_protocol{%endif%};
         listen {{ HTTPS_PORT }}{% if NGINX_USE_PROXY_PROTOCOL %} proxy_protocol{%endif%} ssl;
         {% if not DISABLE_IPv6 %}

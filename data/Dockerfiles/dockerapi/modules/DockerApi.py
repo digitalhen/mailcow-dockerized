@@ -366,38 +366,6 @@ class DockerApi:
           cmd = ["/bin/bash", "-c", cmd_vmail]
         maildir_move = container.exec_run(cmd, user='vmail')
         return self.exec_run_handler('generic', maildir_move)
-  # api call: container_post - post_action: exec - cmd: rspamd - task: worker_password
-  def container_post__exec__rspamd__worker_password(self, request_json, **kwargs):
-    if 'container_id' in kwargs:
-      filters = {"id": kwargs['container_id']}
-    elif 'container_name' in kwargs:
-      filters = {"name": kwargs['container_name']}
-
-    if 'raw' in request_json:
-      for container in self.sync_docker_client.containers.list(filters=filters):
-        cmd = "/usr/bin/rspamadm pw -e -p '" + request_json['raw'].replace("'", "'\\''") + "' 2> /dev/null"
-        cmd_response = self.exec_cmd_container(container, cmd, user="_rspamd")
-
-        matched = False
-        for line in cmd_response.split("\n"):
-          if '$2$' in line:
-            hash = line.strip()
-            hash_out = re.search(r'\$2\$.+$', hash).group(0)
-            rspamd_passphrase_hash = re.sub(r'[^0-9a-zA-Z\$]+', '', hash_out.rstrip())
-            rspamd_password_filename = "/etc/rspamd/override.d/worker-controller-password.inc"
-            cmd = '''/bin/echo 'enable_password = "%s";' > %s && cat %s''' % (rspamd_passphrase_hash, rspamd_password_filename, rspamd_password_filename)
-            cmd_response = self.exec_cmd_container(container, cmd, user="_rspamd")
-            if rspamd_passphrase_hash.startswith("$2$") and rspamd_passphrase_hash in cmd_response:
-              container.restart()
-              matched = True
-        if matched:
-          res = { 'type': 'success', 'msg': 'command completed successfully' }
-          self.logger.info('success changing Rspamd password')
-          return Response(content=json.dumps(res, indent=4), media_type="application/json")
-        else:
-          self.logger.error('failed changing Rspamd password')
-          res = { 'type': 'danger', 'msg': 'command did not complete' }
-          return Response(content=json.dumps(res, indent=4), media_type="application/json")
   # api call: container_post - post_action: exec - cmd: sogo - task: rename
   def container_post__exec__sogo__rename_user(self, request_json, **kwargs):
     if 'container_id' in kwargs:
